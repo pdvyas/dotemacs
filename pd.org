@@ -1,0 +1,192 @@
+* Configuration
+** Personal 
+#+begin_src emacs-lisp
+  (setq user-full-name "Pratik Vyas"
+        user-mail-address "m@pd.io")
+#+end_src
+** Emacs Init
+*** Install pacakages if necessary
+#+begin_src emacs-lisp
+(defun pd/package-install (package &optional repository)
+  "Install PACKAGE if it has not yet been installed.
+If REPOSITORY is specified, use that."
+  (unless (package-installed-p package)
+    (let ((package-archives (if repository
+                                (list (assoc repository package-archives))
+                              package-archives)))
+    (package-install package))))
+#+end_src
+
+
+*** Add package sources
+#+begin_src emacs-lisp
+(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
+(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
+(add-to-list 'package-archives '("marmalade" . "http://marmalade-repo.org/packages/") t)
+(package-initialize)
+#+end_src
+
+** General
+*** Scrolling
+#+begin_src emacs-lisp
+(setq mouse-wheel-scroll-amount '(2 ((shift) . 2) ((control) . nil)))
+(setq mouse-wheel-progressive-speed nil)
+#+end_src
+
+** Evil stuff
+
+#+begin_src emacs-lisp
+  (pd/package-install 'evil)
+  (evil-mode 1)
+#+end_src
+   
+*** I use semicolon to get into ex mode 
+#+begin_src emacs-lisp
+  (define-key evil-normal-state-map ";" 'evil-ex)
+#+end_src
+*** Commenting
+#+begin_src emacs-lisp
+  (pd/package-install 'evil-nerd-commenter)
+  (define-key evil-normal-state-map "gcc" 'evilnc-comment-or-uncomment-lines)
+  (define-key evil-normal-state-map "x" 'er/expand-region)
+  (define-key evil-normal-state-map "s" 'er/contract-region)
+#+end_src
+*** Expand region
+#+begin_src emacs-lisp
+  (pd/package-install 'expand-region)
+  (define-key evil-normal-state-map "x" 'er/expand-region)
+  (define-key evil-normal-state-map "s" 'er/contract-region)
+#+end_src
+
+*** Quitting buffers
+#+begin_src emacs-lisp
+(evil-ex-define-cmd "q" 'kill-buffer-and-window)
+(define-key evil-normal-state-map [escape] 'keyboard-quit)
+(define-key evil-visual-state-map [escape] 'keyboard-quit)
+(define-key minibuffer-local-map [escape] 'minibuffer-keyboard-quit)
+(define-key minibuffer-local-ns-map [escape] 'minibuffer-keyboard-quit)
+(define-key minibuffer-local-completion-map [escape] 'minibuffer-keyboard-quit)
+(define-key minibuffer-local-must-match-map [escape] 'minibuffer-keyboard-quit)
+(define-key minibuffer-local-isearch-map [escape] 'minibuffer-keyboard-quit)
+#+end_src
+** Tabs!
+#+begin_src emacs-lisp
+  (pd/package-install 'tabbar)
+  (tabbar-mode 1)
+#+end_src
+
+Sort tabs
+#+begin_src emacs-lisp
+(tabbar-mode 1)
+ (defun my-tabbar-buffer-groups () ;; customize to show all normal files in one group
+   "Returns the name of the tab group names the current buffer belongs to.
+ There are two groups: Emacs buffers (those whose name starts with '*', plus
+ dired buffers), and the rest.  This works at least with Emacs v24.2 using
+ tabbar.el v1.7."
+   (list (cond ((string-equal "*" (substring (buffer-name) 0 1)) "emacs")
+               ((eq major-mode 'dired-mode) "emacs")
+               (t "user"))))
+ (setq tabbar-buffer-groups-function 'my-tabbar-buffer-groups)
+ ;; Add a buffer modification state indicator in the tab label, and place a
+ ;; space around the label to make it looks less crowd.
+ (defadvice tabbar-buffer-tab-label (after fixup_tab_label_space_and_flag activate)
+   (setq ad-return-value
+         (if (and (buffer-modified-p (tabbar-tab-value tab))
+                  (buffer-file-name (tabbar-tab-value tab)))
+             (concat " + " (concat ad-return-value " "))
+           (concat " " (concat ad-return-value " ")))))
+#+end_src
+
+Keybindings
+#+begin_src emacs-lisp
+(define-key evil-normal-state-map (kbd "gt") 'tabbar-forward-tab)
+(define-key evil-normal-state-map (kbd "gT") 'tabbar-backward-tab)
+(define-key evil-normal-state-map (kbd "gb") 'iswitchb-buffer)
+(define-key evil-normal-state-map (kbd "z") 'sr-speedbar-toggle)
+#+end_src
+
+
+Make it pretty!
+
+#+begin_src emacs-lisp
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(tabbar-button ((t (:inherit tabbar-default :foreground "dark red"))))
+ '(tabbar-button-highlight ((t (:inherit tabbar-default))))
+ '(tabbar-default ((t (:inherit variable-pitch :background "#959A79" :foreground "black" :weight bold))))
+ '(tabbar-highlight ((t (:underline t))))
+ '(tabbar-selected ((t (:inherit tabbar-default :background "#95CA59"))))
+ '(tabbar-separator ((t (:inherit tabbar-default :background "#95CA59"))))
+ '(tabbar-unselected ((t (:inherit tabbar-default)))))
+#+end_src
+
+** Orgmode
+*** Pretty bullets
+#+begin_src emacs-lisp
+(pd/package-install 'org-bullets)
+(require 'org-bullets)
+(add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+#+end_src
+*** Org files
+#+begin_src emacs-lisp
+(setq org-agenda-files '("~/orgs"))
+#+end_src
+
+*** Evil
+#+begin_src emacs-lisp
+(pd/package-install 'evil-org)
+(pd/package-install 'evil-leader)
+(require 'evil-org)
+#+end_src
+
+** Enhancements
+*** Powerline
+*** ido 
+#+begin_src emacs-lisp
+(ido-mode 1)
+#+end_src
+
+**** For buffers
+#+begin_src emacs-lisp
+(iswitchb-mode)
+(define-key evil-normal-state-map (kbd "gb") 'iswitchb-buffer)
+#+end_src
+**** Awesome M-x
+#+begin_src emacs-lisp
+(pd/package-install 'smex)
+(global-set-key (kbd "M-x") 'smex)
+(global-set-key (kbd "M-X") 'smex-major-mode-commands)
+#+end_src
+
+** Looks
+*** Theme
+#+begin_src emacs-lisp
+(pd/package-install 'monokai-theme)
+(load-theme 'monokai t)
+#+end_src
+
+*** Cursor
+#+begin_src emacs-lisp
+(setq evil-insert-state-cursor 'hbar
+      evil-normal-state-cursor 'box
+      evil-visual-state-cursor 'box
+      evil-default-cursor t)
+#+end_src
+
+*** Frame
+#+begin_src emacs-lisp
+(set-frame-font "Meslo LG M 12" nil t)
+(blink-cursor-mode -1)
+(menu-bar-mode -1)
+(tool-bar-mode -1)
+(scroll-bar-mode -1)
+#+end_src
+    
+*** Vertical ido
+#+begin_src emacs-lisp
+(pd/package-install 'ido-vertical-mode)
+(ido-vertical-mode 1)
+#+end_src
