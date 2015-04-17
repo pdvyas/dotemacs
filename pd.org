@@ -1,11 +1,12 @@
-* Configuration
+
+* DONE Configuration
 ** Personal 
 #+begin_src emacs-lisp
   (setq user-full-name "Pratik Vyas"
         user-mail-address "m@pd.io")
 #+end_src
 ** Emacs Init
-*** Install pacakages if necessary
+*** Install packages if necessary
 #+begin_src emacs-lisp
 (defun pd/package-install (package &optional repository)
   "Install PACKAGE if it has not yet been installed.
@@ -15,29 +16,96 @@ If REPOSITORY is specified, use that."
                                 (list (assoc repository package-archives))
                               package-archives)))
     (package-install package))))
+;(pd/package-install 'use-package)
+; (require 'use-package)
 #+end_src
-
 
 *** Add package sources
 #+begin_src emacs-lisp
-(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
-(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
-(add-to-list 'package-archives '("marmalade" . "http://marmalade-repo.org/packages/") t)
-(package-initialize)
+  (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
+  (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
+  (add-to-list 'package-archives '("marmalade" . "http://marmalade-repo.org/packages/") t)
+  (add-to-list 'package-archives '("elpy" . "http://jorgenschaefer.github.io/packages/"))
+  (package-initialize)
+#+end_src
+
+*** Add to load path
+#+begin_src emacs-lisp
+  ;; (add-to-list 'load-path "~/.emacs.d/lisp")
+  (add-to-list 'exec-path "~/bin")
+  (add-to-list 'exec-path "/usr/local/bin")
+  (add-to-list 'exec-path "~/.javahome/bin")
+  (if (not (getenv "TERM_PROGRAM"))
+       (setenv "PATH"
+              (shell-command-to-string "source $HOME/.paths && printf $PATH")))
 #+end_src
 
 ** General
+*** Startup
+#+begin_src emacs-lisp
+  (setq inhibit-startup-screen t)
+  (setq inhibit-startup-message t)
+#+end_src
+
+*** Pairs
+#+begin_src emacs-lisp
+(electric-pair-mode 1)
+#+end_src
+
 *** Scrolling
 #+begin_src emacs-lisp
 (setq mouse-wheel-scroll-amount '(2 ((shift) . 2) ((control) . nil)))
 (setq mouse-wheel-progressive-speed nil)
 #+end_src
 
+*** Y/N questions
+#+begin_src emacs-lisp
+(fset 'yes-or-no-p 'y-or-n-p)
+#+end_src
+
+*** Annoying files
+#+begin_src emacs-lisp
+  (setq backup-directory-alist `((".*" . ,temporary-file-directory)))
+  (setq auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))
+#+end_src
+
+*** Windowing
+#+begin_src emacs-lisp
+  (defun swap-window-positions ()         ; Stephen Gildea
+    "*Swap the positions of this window and the next one."
+    (interactive)
+    (let ((other-window (next-window (selected-window) 'no-minibuf)))
+      (let ((other-window-buffer (window-buffer other-window))
+            (other-window-hscroll (window-hscroll other-window))
+            (other-window-point (window-point other-window))
+            (other-window-start (window-start other-window)))
+        (set-window-buffer other-window (current-buffer))
+        (set-window-hscroll other-window (window-hscroll (selected-window)))
+        (set-window-point other-window (point))
+        (set-window-start other-window (window-start (selected-window)))
+        (set-window-buffer (selected-window) other-window-buffer)
+        (set-window-hscroll (selected-window) other-window-hscroll)
+        (set-window-point (selected-window) other-window-point)
+        (set-window-start (selected-window) other-window-start))
+      (select-window other-window)))
+
+
+  (defun switch-to-previous-buffer ()
+    "Switch to previously open buffer.
+  Repeated invocations toggle between the two most recently open buffers."
+    (interactive)
+    (switch-to-buffer (other-buffer (current-buffer) 1)))
+
+  (global-set-key (kbd "s-z") 'switch-to-previous-buffer)
+#+end_src
+
 ** Evil stuff
 
 #+begin_src emacs-lisp
-  (pd/package-install 'evil)
-  (evil-mode 1)
+      (pd/package-install 'evil)
+      (evil-mode 1)
+      (setq-default evil-symbol-word-search t)
+      ;; (evil-set-initial-state 'speedbar-mode 'emacs)
 #+end_src
    
 *** I use semicolon to get into ex mode 
@@ -69,59 +137,93 @@ If REPOSITORY is specified, use that."
 (define-key minibuffer-local-must-match-map [escape] 'minibuffer-keyboard-quit)
 (define-key minibuffer-local-isearch-map [escape] 'minibuffer-keyboard-quit)
 #+end_src
-** Tabs!
+** Modes
+**** Markdown
 #+begin_src emacs-lisp
-  (pd/package-install 'tabbar)
-  (tabbar-mode 1)
+  (pd/package-install 'markdown-mode)
+(autoload 'markdown-mode "markdown-mode"
+   "Major mode for editing Markdown files" t)
+(add-to-list 'auto-mode-alist '("\\.text\\'" . markdown-mode))
+(add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
+(add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
+#+end_src
+**** SML
+#+begin_src emacs-lisp
+  (pd/package-install 'sml-mode)
+#+end_src
+**** Python
+#+begin_src emacs-lisp
+  (pd/package-install 'elpy)
+  (elpy-enable)
+  (elpy-use-ipython)
+
+
+  ;; Ignoring electric indentation
+  (defun electric-indent-ignore-python (char)
+    "Ignore electric indentation for python-mode"
+    (if (equal major-mode 'python-mode)
+        `no-indent'
+      nil))
+  (add-hook 'electric-indent-functions 'electric-indent-ignore-python)
+    ;; (defun complete-or-indent ()
+    ;;   (interactive)
+    ;;   (if (company-manual-begin)
+    ;;       (company-complete-common)
+    ;;     (indent-according-to-mode)))
+
+#+end_src
+**** Clojure
+#+begin_src emacs-lisp
+  (setq cider-show-error-buffer nil)
+  (require 'ac-cider)
+  (add-hook 'cider-mode-hook 'ac-flyspell-workaround)
+  (add-hook 'cider-mode-hook 'ac-cider-setup)
+  (add-hook 'cider-repl-mode-hook 'ac-cider-setup)
+  (eval-after-load "auto-complete"
+    '(progn
+       (add-to-list 'ac-modes 'cider-mode)
+       (add-to-list 'ac-modes 'cider-repl-mode)))
+#+end_src
+
+**** YAML
+#+begin_src emacs-lisp
+  (pd/package-install 'yaml-mode)
+  (add-hook 'yaml-mode-hook
+            (lambda ()
+               (define-key yaml-mode-map "\C-m" 'newline-and-indent)))
+#+end_src
+** COMMENT TODO Tabs!
+
+
+#+begin_src emacs-lisp
+  (global-set-key (kbd "C-S-t") 'elscreen-create)
+
 #+end_src
 
 Sort tabs
 #+begin_src emacs-lisp
-(tabbar-mode 1)
- (defun my-tabbar-buffer-groups () ;; customize to show all normal files in one group
-   "Returns the name of the tab group names the current buffer belongs to.
- There are two groups: Emacs buffers (those whose name starts with '*', plus
- dired buffers), and the rest.  This works at least with Emacs v24.2 using
- tabbar.el v1.7."
-   (list (cond ((string-equal "*" (substring (buffer-name) 0 1)) "emacs")
-               ((eq major-mode 'dired-mode) "emacs")
-               (t "user"))))
- (setq tabbar-buffer-groups-function 'my-tabbar-buffer-groups)
- ;; Add a buffer modification state indicator in the tab label, and place a
- ;; space around the label to make it looks less crowd.
- (defadvice tabbar-buffer-tab-label (after fixup_tab_label_space_and_flag activate)
-   (setq ad-return-value
-         (if (and (buffer-modified-p (tabbar-tab-value tab))
-                  (buffer-file-name (tabbar-tab-value tab)))
-             (concat " + " (concat ad-return-value " "))
-           (concat " " (concat ad-return-value " ")))))
+
+  ;; (global-evil-tabs-mode t)
 #+end_src
 
 Keybindings
 #+begin_src emacs-lisp
-(define-key evil-normal-state-map (kbd "gt") 'tabbar-forward-tab)
-(define-key evil-normal-state-map (kbd "gT") 'tabbar-backward-tab)
-(define-key evil-normal-state-map (kbd "gb") 'iswitchb-buffer)
-(define-key evil-normal-state-map (kbd "z") 'sr-speedbar-toggle)
+  (define-key evil-normal-state-map (kbd "gt") 'elscreen-next)
+  (define-key evil-normal-state-map (kbd "gT") 'elscreen-previous)
+  (define-key evil-normal-state-map (kbd "gb") 'iswitchb-buffer)
+  (define-key evil-normal-state-map (kbd "C-p") 'projectile-find-file)
+  (define-key evil-normal-state-map (kbd "C-S-p") 'projectile-switch-to-buffer)
+  (define-key evil-normal-state-map (kbd "z") 'neotree-toggle)
 #+end_src
 
 
-Make it pretty!
 
+** TERM
 #+begin_src emacs-lisp
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(tabbar-button ((t (:inherit tabbar-default :foreground "dark red"))))
- '(tabbar-button-highlight ((t (:inherit tabbar-default))))
- '(tabbar-default ((t (:inherit variable-pitch :background "#959A79" :foreground "black" :weight bold))))
- '(tabbar-highlight ((t (:underline t))))
- '(tabbar-selected ((t (:inherit tabbar-default :background "#95CA59"))))
- '(tabbar-separator ((t (:inherit tabbar-default :background "#95CA59"))))
- '(tabbar-unselected ((t (:inherit tabbar-default)))))
+(pd/package-install 'multi-term)
+
 #+end_src
+
 
 ** Orgmode
 *** Pretty bullets
@@ -130,25 +232,99 @@ Make it pretty!
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 #+end_src
+*** Crypto
+#+begin_src emacs-lisp
+(require 'epa-file)
+(epa-file-enable)
+(require 'org-crypt)
+(org-crypt-use-before-save-magic)
+(setq org-tags-exclude-from-inheritance (quote ("crypt")))
+;; GPG key to use for encryption
+;; Either the Key ID or set to nil to use symmetric encryption.
+(setq org-crypt-key nil)
+#+end_src
+
+#+RESULTS:
+
 *** Org files
 #+begin_src emacs-lisp
-(setq org-agenda-files '("~/orgs"))
+  (setq org-agenda-files '("~/Dropbox/org"))
+  (setq org-directory "~/Dropbox/org")
+#+end_src
+*** Mobile Org files
+#+begin_src emacs-lisp
+  (setq org-mobile-directory "~/Dropbox/mobile-org")
+  (setq org-mobile-inbox-for-pull "~/Dropbox/org/inbox.org")
 #+end_src
 
 *** Evil
 #+begin_src emacs-lisp
-(pd/package-install 'evil-org)
-(pd/package-install 'evil-leader)
-(require 'evil-org)
+  (pd/package-install 'evil-org)
+  (pd/package-install 'evil-leader)
+  (require 'evil-org)
 #+end_src
 
+*** Reveal
+#+begin_src emacs-lisp
+(pd/package-install 'ox-reveal)
+#+end_src
+*** Archive
+#+begin_src emacs-lisp
+(defun my-org-archive-done-tasks ()
+  (interactive)
+  (org-map-entries 'org-archive-subtree "/DONE" 'file))
+#+end_src
+*** Pomodoro
+#+begin_src emacs-lisp
+(pd/package-install 'org-pomodoro)
+;; Needs terminal-notifier (brew install terminal-notifier)
+(defun notify-osx (title message)
+(call-process "terminal-notifier"
+nil 0 nil
+"-group" "Emacs"
+"-title" title
+"-sender" "org.gnu.Emacs"
+"-message" message))
+;; org-pomodoro mode hooks
+(add-hook 'org-pomodoro-finished-hook
+(lambda ()
+(notify-osx "Pomodoro completed!" "Time for a break.")))
+ 
+(add-hook 'org-pomodoro-break-finished-hook
+(lambda ()
+(notify-osx "Pomodoro Short Break Finished" "Ready for Another?")))
+ 
+(add-hook 'org-pomodoro-long-break-finished-hook
+(lambda ()
+(notify-osx "Pomodoro Long Break Finished" "Ready for Another?")))
+ 
+(add-hook 'org-pomodoro-killed-hook
+(lambda ()
+(notify-osx "Pomodoro Killed" "One does not simply kill a pomodoro!"))) 
+#+end_src
+
+#+RESULTS:
+| lambda | nil | (notify-osx Pomodoro Killed One does not simply kill a pomodoro!) |
+
+*** Keybindings
+
+#+begin_src emacs-lisp
+  (global-set-key "\C-cl" 'org-store-link)
+  (global-set-key "\C-ca" 'org-agenda)
+  (global-set-key "\C-cb" 'org-iswitchb)
+#+end_src
 ** Enhancements
-*** Powerline
+*** TODO Powerline
+*** TODO snippets
 *** ido 
+
 #+begin_src emacs-lisp
 (ido-mode 1)
 #+end_src
-
+**** TODO Flex matching
+#+begin_src emacs-lisp
+  (setq ido-enable-flex-matching 1)
+#+end_src
 **** For buffers
 #+begin_src emacs-lisp
 (iswitchb-mode)
@@ -156,16 +332,126 @@ Make it pretty!
 #+end_src
 **** Awesome M-x
 #+begin_src emacs-lisp
-(pd/package-install 'smex)
-(global-set-key (kbd "M-x") 'smex)
-(global-set-key (kbd "M-X") 'smex-major-mode-commands)
+  (pd/package-install 'smex)
+  (global-set-key (kbd "M-x") 'smex)
+  (global-set-key (kbd "s-,") 'smex)
+  (global-set-key (kbd "M-X") 'smex-major-mode-commands)
+#+end_src
+
+*** Undo tree
+#+begin_src emacs-lisp
+  ;; (pd/package-install 'undo-tree)
+  ;; (global-undo-tree-mode)
+  ;; (setq undo-tree-visualizer-timestamps t)
+  ;; (setq undo-tree-visualizer-diff t)
+#+end_src
+*** TODO speedbar
+#+begin_src emacs-lisp
+  ;; (pd/package-install 'sr-speedbar)
+  ;; (require 'projectile-speedbar)
+  ;; (setq sr-speedbar-right-side nil)
+  ;; (sr-speedbar-refresh-turn-off)
+
+  (pd/package-install 'neotree)
+  (require 'neotree)
+#+end_src
+*** New line
+Why is this not default?
+#+begin_src emacs-lisp
+(define-key global-map (kbd "RET") 'newline-and-indent)
+#+end_src
+*** Completion
+#+begin_src emacs-lisp
+  (pd/package-install 'auto-complete)
+  (pd/package-install 'smart-tab)
+  ;; (require 'auto-complete-config)
+  ;; (ac-config-default)
+  ;; (setq tab-always-indent 'complete)
+  ;; (setq ac-auto-show-menu t)
+  (defun company-complete-common-or-previous-cycle ()
+    "Insert the common part of all candidates, or select the next one."
+    (interactive)
+    (when (company-manual-begin)
+      (let ((tick (buffer-chars-modified-tick)))
+        (call-interactively 'company-complete-common)
+        (when (eq tick (buffer-chars-modified-tick))
+          (let ((company-selection-wrap-around t))
+            (call-interactively 'company-select-previous))))))
+  (define-key company-active-map (kbd "TAB") 'company-complete-common-or-cycle)
+  (define-key company-active-map (kbd "<backtab>") 'company-complete-common-or-previous-cycle)
+
+
+#+end_src
+
+*** Projectile
+#+begin_src emacs-lisp
+  (pd/package-install 'projectile)
+  (projectile-global-mode)
+  (setq projectile-generic-command "find . -type f -not -iwholename '*.git*'  -print0")
+  (setq projectile-file-exists-local-cache-expire (* 5 60))
+(setq projectile-enable-caching t)
+
+#+end_src
+
+*** underscores!
+#+begin_src emacs-lisp
+(modify-syntax-entry ?_ "_")
+#+end_src
+
+** Helm
+#+begin_src emacs-lisp
+  ;; (pd/package-install 'helm)
+  ;; (require 'helm-config)
+  ;; (setq helm-input-idle-delay 0.2)
+  ;; (helm-mode t)
+  ;; (setq helm-locate-command
+  ;;       (case system-type
+  ;;         ('gnu/linux "locate -i -r %s")
+  ;;         ('berkeley-unix "locate -i %s")
+  ;;         ('windows-nt "es %s")
+  ;;         ('darwin "mdfind -name %s %s")
+  ;;         (t "locate %s")))
+
+  ;; (global-set-key (kbd "C-x c g") 'helm-do-grep)
+  ;; (global-set-key (kbd "C-x c o") 'helm-occur)
+  ;; (global-set-key (kbd "M-x") 'helm-M-x)
+  ;; (global-set-key (kbd "C-x C-f") 'helm-find-files)
+
+  ;; ;; rebind tab to run persistent action
+  ;; (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action)
+  ;; ;; make TAB works in terminal
+  ;; (define-key helm-map (kbd "C-i") 'helm-execute-persistent-action)
+  ;; ;; list actions using C-z
+  ;; (define-key helm-map (kbd "C-z") 'helm-select-action)
+
+  ;; (when (executable-find "curl")
+  ;;   (setq helm-google-suggest-use-curl-p t))
+
+  ;; (setq
+  ;;  ;; open helm buffer inside current window, not occupy whole other window
+  ;;  helm-split-window-in-side-p t
+  ;;  ;; fuzzy matching buffer names when non--nil
+  ;;  helm-buffers-fuzzy-matching t
+  ;;  ;; move to end or beginning of source when reaching top or bottom of source.
+  ;;  helm-move-to-line-cycle-in-source t
+  ;;  ;; search for library in `require' and `declare-function' sexp.
+  ;;  helm-ff-search-library-in-sexp t
+  ;;  ;; scroll 8 lines other window using M-<next>/M-<prior>
+  ;;  helm-scroll-amount 8
+  ;;  helm-M-x-fuzzy-match t
+  ;;  helm-ff-file-name-history-use-recentf t)
 #+end_src
 
 ** Looks
 *** Theme
 #+begin_src emacs-lisp
-(pd/package-install 'monokai-theme)
-(load-theme 'monokai t)
+  ;(pd/package-install 'monokai-theme)
+  ;(pd/package-install 'solarized-theme)
+  ;(load-theme 'solarized-light t)
+  (add-to-list 'custom-theme-load-path "~/.emacs.d/themes")
+  (set-cursor-color "#0a9dff")
+  (load-theme 'darktooth t)
+
 #+end_src
 
 *** Cursor
@@ -178,15 +464,51 @@ Make it pretty!
 
 *** Frame
 #+begin_src emacs-lisp
-(set-frame-font "Meslo LG M 12" nil t)
-(blink-cursor-mode -1)
-(menu-bar-mode -1)
-(tool-bar-mode -1)
-(scroll-bar-mode -1)
+  (set-frame-font "Menlo 11" nil t)
+  (blink-cursor-mode -1)
+  (menu-bar-mode -1)
+  (tool-bar-mode -1)
+  (scroll-bar-mode -1)
 #+end_src
     
 *** Vertical ido
 #+begin_src emacs-lisp
 (pd/package-install 'ido-vertical-mode)
 (ido-vertical-mode 1)
+#+end_src
+    
+*** Tabs 
+#+begin_src emacs-lisp
+  (setq-default tab-width 4)
+  (setq default-tab-width 4)
+#+end_src
+   
+	
+** Journaling	
+#+begin_src emacs-lisp
+  ;(pd/package-install 'org-journal)
+#+end_src
+** COMMENT gpg
+#+begin_src emacs-lisp
+  (setq epg-gpg-program "/usr/local/bin/gpg")
+
+  (defun dwim-kill-gpg-buffers ()
+    (interactive)
+    (let ((buffers-killed 0))
+      (dolist (buffer (buffer-list))
+        (with-current-buffer buffer
+          (when (string-match ".*\.gpg$" (buffer-name buffer))
+            (let ((current-time (second (current-time)))
+                  (last-displayed-time (second buffer-display-time)))
+              (when (> (- current-time last-displayed-time)
+                       60)
+                (message "Auto killing .gpg buffer '%s'" (buffer-name buffer))
+                (when (buffer-modified-p buffer)
+                  (save-buffer))
+                (kill-buffer buffer)
+                (incf buffers-killed))))))
+      (unless (zerop buffers-killed)
+        (message "%s .gpg buffers have been autosaved and killed" buffers-killed))))
+
+  (run-with-idle-timer 30 t 'dwim-kill-gpg-buffers)
 #+end_src
