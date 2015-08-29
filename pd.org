@@ -1,5 +1,5 @@
 
-* DONE Configuration
+* Configuration
 ** Personal 
 #+begin_src emacs-lisp
   (setq user-full-name "Pratik Vyas"
@@ -38,6 +38,7 @@ If REPOSITORY is specified, use that."
   (if (not (getenv "TERM_PROGRAM"))
        (setenv "PATH"
               (shell-command-to-string "source $HOME/.paths && printf $PATH")))
+  (setenv "GOPATH" "/Users/tleyden/Development/gocode")
 #+end_src
 
 ** General
@@ -116,8 +117,6 @@ If REPOSITORY is specified, use that."
 #+begin_src emacs-lisp
   (pd/package-install 'evil-nerd-commenter)
   (define-key evil-normal-state-map "gcc" 'evilnc-comment-or-uncomment-lines)
-  (define-key evil-normal-state-map "x" 'er/expand-region)
-  (define-key evil-normal-state-map "s" 'er/contract-region)
 #+end_src
 *** Expand region
 #+begin_src emacs-lisp
@@ -174,6 +173,8 @@ If REPOSITORY is specified, use that."
 #+end_src
 **** Clojure
 #+begin_src emacs-lisp
+  (pd/package-install 'cider)
+  (pd/package-install 'ac-cider)
   (setq cider-show-error-buffer nil)
   (require 'ac-cider)
   (add-hook 'cider-mode-hook 'ac-flyspell-workaround)
@@ -248,8 +249,8 @@ Keybindings
 
 *** Org files
 #+begin_src emacs-lisp
-  (setq org-agenda-files '("~/Dropbox/org"))
-  (setq org-directory "~/Dropbox/org")
+  (setq org-agenda-files '("~/Dropbox/orgzly"))
+  (setq org-directory "~/Dropbox/orgzly")
 #+end_src
 *** Mobile Org files
 #+begin_src emacs-lisp
@@ -314,16 +315,27 @@ nil 0 nil
   (global-set-key "\C-cb" 'org-iswitchb)
 #+end_src
 ** Enhancements
+*** Auto revert
+#+begin_src emacs-lisp
+  (global-auto-revert-mode t)
+#+end_src
 *** TODO Powerline
 *** TODO snippets
 *** ido 
 
 #+begin_src emacs-lisp
-(ido-mode 1)
+  (ido-mode 1)
+  (ido-everywhere 1)
 #+end_src
 **** TODO Flex matching
 #+begin_src emacs-lisp
-  (setq ido-enable-flex-matching 1)
+   (setq ido-enable-flex-matching 1)
+  (require 'flx-ido)
+  (pd/package-install 'flx-ido)
+  (flx-ido-mode 1)
+  ;; disable ido faces to see flx highlights.
+  (setq ido-use-faces nil)
+  (setq flx-ido-threshold 300)
 #+end_src
 **** For buffers
 #+begin_src emacs-lisp
@@ -344,6 +356,10 @@ nil 0 nil
   ;; (global-undo-tree-mode)
   ;; (setq undo-tree-visualizer-timestamps t)
   ;; (setq undo-tree-visualizer-diff t)
+#+end_src
+*** Magit
+#+begin_src emacs-lisp
+  (pd/package-install 'magit)
 #+end_src
 *** TODO speedbar
 #+begin_src emacs-lisp
@@ -377,22 +393,28 @@ Why is this not default?
         (when (eq tick (buffer-chars-modified-tick))
           (let ((company-selection-wrap-around t))
             (call-interactively 'company-select-previous))))))
-  (define-key company-active-map (kbd "TAB") 'company-complete-common-or-cycle)
+
+  ;; (define-key company-active-map (kbd "TAB") 'company-complete-common-or-cycle)
   (define-key company-active-map (kbd "<backtab>") 'company-complete-common-or-previous-cycle)
 
-
+  (setq smart-tab-completion-functions-alist
+     (quote
+      ((emacs-lisp-mode . lisp-complete-symbol)
+       (text-mode . dabbrev-completion)
+       (Python . company-complete-common-or-cycle))))
 #+end_src
 
-*** Projectile
+*** COMMENT Projectile
 #+begin_src emacs-lisp
-  (pd/package-install 'projectile)
-  (projectile-global-mode)
-  (setq projectile-generic-command "find . -type f -not -iwholename '*.git*'  -print0")
-  (setq projectile-file-exists-local-cache-expire (* 5 60))
-(setq projectile-enable-caching t)
+    (pd/package-install 'projectile)
+    (projectile-global-mode)
+    (setq projectile-generic-command "find . -type f -not -iwholename '*.git*' -not -iwholename '*site-packages*' -not -iwholename '*.pyc' -print0")
+    (setq projectile-file-exists-local-cache-expire (* 5 60))
+  (setq projectile-enable-caching t)
+  (setq projectile-completion-system 'helm)
 
 #+end_src
-
+	
 *** underscores!
 #+begin_src emacs-lisp
 (modify-syntax-entry ?_ "_")
@@ -400,56 +422,20 @@ Why is this not default?
 
 ** Helm
 #+begin_src emacs-lisp
-  ;; (pd/package-install 'helm)
-  ;; (require 'helm-config)
-  ;; (setq helm-input-idle-delay 0.2)
-  ;; (helm-mode t)
-  ;; (setq helm-locate-command
-  ;;       (case system-type
-  ;;         ('gnu/linux "locate -i -r %s")
-  ;;         ('berkeley-unix "locate -i %s")
-  ;;         ('windows-nt "es %s")
-  ;;         ('darwin "mdfind -name %s %s")
-  ;;         (t "locate %s")))
-
-  ;; (global-set-key (kbd "C-x c g") 'helm-do-grep)
-  ;; (global-set-key (kbd "C-x c o") 'helm-occur)
-  ;; (global-set-key (kbd "M-x") 'helm-M-x)
-  ;; (global-set-key (kbd "C-x C-f") 'helm-find-files)
-
-  ;; ;; rebind tab to run persistent action
-  ;; (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action)
-  ;; ;; make TAB works in terminal
-  ;; (define-key helm-map (kbd "C-i") 'helm-execute-persistent-action)
-  ;; ;; list actions using C-z
-  ;; (define-key helm-map (kbd "C-z") 'helm-select-action)
-
-  ;; (when (executable-find "curl")
-  ;;   (setq helm-google-suggest-use-curl-p t))
-
-  ;; (setq
-  ;;  ;; open helm buffer inside current window, not occupy whole other window
-  ;;  helm-split-window-in-side-p t
-  ;;  ;; fuzzy matching buffer names when non--nil
-  ;;  helm-buffers-fuzzy-matching t
-  ;;  ;; move to end or beginning of source when reaching top or bottom of source.
-  ;;  helm-move-to-line-cycle-in-source t
-  ;;  ;; search for library in `require' and `declare-function' sexp.
-  ;;  helm-ff-search-library-in-sexp t
-  ;;  ;; scroll 8 lines other window using M-<next>/M-<prior>
-  ;;  helm-scroll-amount 8
-  ;;  helm-M-x-fuzzy-match t
-  ;;  helm-ff-file-name-history-use-recentf t)
+  (pd/package-install 'helm)
+  (pd/package-install 'helm-projectile)
+  (helm-projectile-on)
 #+end_src
-
+   
 ** Looks
 *** Theme
 #+begin_src emacs-lisp
   ;(pd/package-install 'monokai-theme)
   ;(pd/package-install 'solarized-theme)
   ;(load-theme 'solarized-light t)
-  (add-to-list 'custom-theme-load-path "~/.emacs.d/themes")
+  ;(add-to-list 'custom-theme-load-path "~/.emacs.d/themes")
   (set-cursor-color "#0a9dff")
+  (pd/package-install 'darktooth-theme)
   (load-theme 'darktooth t)
 
 #+end_src
@@ -464,7 +450,7 @@ Why is this not default?
 
 *** Frame
 #+begin_src emacs-lisp
-  (set-frame-font "Menlo 11" nil t)
+  (set-frame-font "Menlo 13" nil t)
   (blink-cursor-mode -1)
   (menu-bar-mode -1)
   (tool-bar-mode -1)
@@ -511,4 +497,46 @@ Why is this not default?
         (message "%s .gpg buffers have been autosaved and killed" buffers-killed))))
 
   (run-with-idle-timer 30 t 'dwim-kill-gpg-buffers)
+#+end_src
+** Clipboard
+#+begin_src emacs-lisp
+  (defun isolate-kill-ring()
+    "Isolate Emacs kill ring from OS X system pasteboard.
+  This function is only necessary in window system."
+    (interactive)
+    (setq interprogram-cut-function nil)
+    (setq interprogram-paste-function nil))
+
+  (defun pasteboard-copy()
+    "Copy region to OS X system pasteboard."
+    (interactive)
+    (shell-command-on-region
+     (region-beginning) (region-end) "pbcopy"))
+
+  (defun pasteboard-paste()
+    "Paste from OS X system pasteboard via `pbpaste' to point."
+    (interactive)
+    (shell-command-on-region
+     (point) (if mark-active (mark) (point)) "pbpaste" nil t))
+
+  (defun pasteboard-cut()
+    "Cut region and put on OS X system pasteboard."
+    (interactive)
+    (pasteboard-copy)
+    (delete-region (region-beginning) (region-end)))
+
+  (if window-system
+      (progn
+        (isolate-kill-ring)
+        ;; bind CMD+C to pasteboard-copy
+        (global-set-key (kbd "s-c") 'pasteboard-copy)
+        ;; bind CMD+V to pasteboard-paste
+        (global-set-key (kbd "s-v") 'pasteboard-paste)
+        ;; bind CMD+X to pasteboard-cut
+        (global-set-key (kbd "s-x") 'pasteboard-cut))
+
+    ;; you might also want to assign some keybindings for non-window
+    ;; system usage (i.e., in your text terminal, where the
+    ;; command->super does not work)
+    ) 
 #+end_src
